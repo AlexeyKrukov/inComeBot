@@ -1,8 +1,8 @@
 package telegram
 
 import (
-	"awesomeProject1/internal/config"
 	"fmt"
+	"github.com/AlexeyKrukov/inComeBot/internal/config"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"strconv"
