@@ -3,7 +3,7 @@ all: deps run lintfix
 .PHONY: deps
 deps:
 	go get github.com/go-telegram-bot-api/telegram-bot-api/v5
-	go get github.com/ilyakaznacheev/cleanenv
+	go get github.com/spf13/viper
 
 .PHONY: run
 run:

@@ -1,16 +1,15 @@
 package config
 
 import (
-	"errors"
-	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/spf13/viper"
 )
 
-// Config is a struct for configs
+// Config stores all configuration of the bot.
 type Config struct {
-	IsDebug  bool `yaml:"is-debug" env-default:"false"`
-	Telegram struct {
-		Token string `yaml:"token" env-required:"true"`
-	} `yaml:"telegram"`
+	IsDebug       bool   `mapstructure:"IS_DEBUG"`
+	TelegramToken string `mapstructure:"TELEGRAM_TOKEN"`
+	MigrationURL  string `mapstructure:"MIGRATION_URL"`
+	DBSource      string `mapstructure:"DB_SOURCE"`
 }
 
 func (c *Config) GetDebug() bool {
@@ -18,19 +17,21 @@ func (c *Config) GetDebug() bool {
 }
 
 func (c *Config) GetTelegramToken() string {
-	return c.Telegram.Token
+	return c.TelegramToken
 }
 
-func New() (*Config, error) {
-	instance := &Config{}
+func New(path string) (config Config, err error) {
+	viper.AddConfigPath(path)
+	viper.SetConfigName("app")
+	viper.SetConfigType("env")
 
-	//спросить про конфиги
-	if err := cleanenv.ReadConfig("config.yaml", instance); err != nil {
-		help, _ := cleanenv.GetDescription(instance, nil)
+	viper.AutomaticEnv()
 
-		return nil, errors.New(help)
-
+	err = viper.ReadInConfig()
+	if err != nil {
+		return
 	}
 
-	return instance, nil
+	err = viper.Unmarshal(&config)
+	return
 }
