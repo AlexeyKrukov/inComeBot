@@ -1,33 +1,34 @@
 package telegram
 
 import (
-	"fmt"
-	"github.com/AlexeyKrukov/inComeBot/internal/config"
+	"github.com/AlexeyKrukov/inComeBot/internal/pkg/storage"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"strconv"
-	"sync"
 )
 
-var incomes = make(map[string]int)
-var mx sync.Mutex
-
 type Telegram struct {
-	bot *tgbotapi.BotAPI
+	bot     *tgbotapi.BotAPI
+	storage storage.Storage
 }
 
-func New(cfg *config.Config) *Telegram {
-	bot, err := tgbotapi.NewBotAPI(cfg.Telegram.Token)
+type Config interface {
+	GetDebug() bool
+	GetTelegramToken() string
+}
+
+func New(cfg Config) (*Telegram, error) {
+	bot, err := tgbotapi.NewBotAPI(cfg.GetTelegramToken())
 
 	if err != nil {
-		log.Fatalf("Telegram API error: %s", err)
+		return nil, err
 	}
 
-	bot.Debug = cfg.IsDebug
+	bot.Debug = cfg.GetDebug()
 
 	return &Telegram{
 		bot: bot,
-	}
+	}, nil
 }
 
 func (t *Telegram) Run() {
@@ -38,23 +39,26 @@ func (t *Telegram) Run() {
 
 	updates := t.bot.GetUpdatesChan(u)
 
+	t.storage.Incomes = make(storage.IncomesById)
+
 	for update := range updates {
 		if update.Message != nil {
-			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
-			income, _ := strconv.Atoi(update.Message.Text)
+			income, _ := strconv.ParseFloat(update.Message.Text, 2)
 
-			mx.Lock()
+			t.storage.Mu.Lock()
 
-			incomes[update.Message.From.UserName] = incomes[update.Message.From.UserName] + income
+			t.storage.Incomes[update.Message.From.UserName] = t.storage.Incomes[update.Message.From.UserName] + income
 
-			mx.Unlock()
-
-			fmt.Printf("%+v\n", incomes)
+			t.storage.Mu.Unlock()
 
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Income added")
 
 			t.bot.Send(msg)
 		}
 	}
+}
+
+func (t *Telegram) Shutdown() {
+	t.bot.StopReceivingUpdates()
 }

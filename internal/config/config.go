@@ -1,11 +1,11 @@
 package config
 
 import (
+	"errors"
 	"github.com/ilyakaznacheev/cleanenv"
-	"log"
-	"sync"
 )
 
+// Config is a struct for configs
 type Config struct {
 	IsDebug  bool `yaml:"is-debug" env-default:"false"`
 	Telegram struct {
@@ -13,18 +13,24 @@ type Config struct {
 	} `yaml:"telegram"`
 }
 
-var instance *Config
-var once sync.Once
+func (c *Config) GetDebug() bool {
+	return c.IsDebug
+}
 
-func GetConfig() *Config {
-	once.Do(func() {
-		instance = &Config{}
+func (c *Config) GetTelegramToken() string {
+	return c.Telegram.Token
+}
 
-		if err := cleanenv.ReadConfig("../config.yaml", instance); err != nil {
-			help, err := cleanenv.GetDescription(instance, nil)
-			log.Print(help)
-			log.Fatal(err)
-		}
-	})
-	return instance
+func New() (*Config, error) {
+	instance := &Config{}
+
+	//спросить про конфиги
+	if err := cleanenv.ReadConfig("config.yaml", instance); err != nil {
+		help, _ := cleanenv.GetDescription(instance, nil)
+
+		return nil, errors.New(help)
+
+	}
+
+	return instance, nil
 }
