@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"fmt"
 	"github.com/AlexeyKrukov/inComeBot/internal/pkg/storage"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
@@ -53,6 +54,8 @@ func (t *Telegram) Run() {
 			t.storage.Mu.Unlock()
 
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Income added")
+
+			fmt.Printf("%+v\n", t.storage.Incomes)
 
 			t.bot.Send(msg)
 		}

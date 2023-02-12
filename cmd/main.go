@@ -1,14 +1,38 @@
 package main
 
 import (
-	"awesomeProject1/internal/config"
-	"awesomeProject1/internal/telegram"
+	"context"
+	"fmt"
+	"github.com/AlexeyKrukov/inComeBot/internal/config"
+	"github.com/AlexeyKrukov/inComeBot/internal/telegram"
+	"github.com/rs/zerolog/log"
+	"os/signal"
+	"syscall"
+
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/lib/pq"
+	_ "github.com/mattes/migrate/source/file"
 )
 
 func main() {
-	cfg := config.GetConfig()
+	ctx, _ := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	cfg, err := config.New(".")
 
-	tg := telegram.New(cfg)
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot load config")
+	}
 
-	tg.Run()
+	tg, err := telegram.New(&cfg)
+
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot create instance")
+	}
+
+	go tg.Run()
+
+	<-ctx.Done()
+
+	tg.Shutdown()
+
+	fmt.Println("shutting down server gracefully")
 }
