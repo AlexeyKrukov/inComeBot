@@ -1,37 +1,41 @@
 package config
 
 import (
-	"github.com/spf13/viper"
+	"os"
 )
 
-// Config stores all configuration of the bot.
+type conf struct {
+	isDebug       string
+	telegramToken string
+}
+
 type Config struct {
-	IsDebug       bool   `mapstructure:"IS_DEBUG"`
-	TelegramToken string `mapstructure:"TELEGRAM_TOKEN"`
-	MigrationURL  string `mapstructure:"MIGRATION_URL"`
-	DBSource      string `mapstructure:"DB_SOURCE"`
+	conf conf
 }
 
-func (c *Config) GetDebug() bool {
-	return c.IsDebug
+// New returns a new Config struct
+func New() *Config {
+	return &Config{
+		conf: conf{
+			isDebug:       getEnv("IS_DEBUG", "false"),
+			telegramToken: getEnv("TELEGRAM_TOKEN", "XXXX"),
+		},
+	}
 }
 
-func (c *Config) GetTelegramToken() string {
-	return c.TelegramToken
-}
-
-func New(path string) (config Config, err error) {
-	viper.AddConfigPath(path)
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
-
-	viper.AutomaticEnv()
-
-	err = viper.ReadInConfig()
-	if err != nil {
-		return
+// Simple helper function to read an environment or return a default value
+func getEnv(key string, defaultVal string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
 	}
 
-	err = viper.Unmarshal(&config)
-	return
+	return defaultVal
+}
+
+func (c *Config) IsDebug() string {
+	return c.conf.isDebug
+}
+
+func (c *Config) TelegramToken() string {
+	return c.conf.telegramToken
 }

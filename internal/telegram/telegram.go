@@ -2,30 +2,31 @@ package telegram
 
 import (
 	"fmt"
-	"github.com/AlexeyKrukov/inComeBot/internal/pkg/storage"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log"
 	"strconv"
+
+	"github.com/AlexeyKrukov/inComeBot/internal/incomes"
+	"github.com/AlexeyKrukov/inComeBot/internal/pkg/storage"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type Telegram struct {
-	bot     *tgbotapi.BotAPI
-	storage storage.Storage
+	bot *tgbotapi.BotAPI
 }
 
-type Config interface {
-	GetDebug() bool
-	GetTelegramToken() string
+type config interface {
+	IsDebug() string
+	TelegramToken() string
 }
 
-func New(cfg Config) (*Telegram, error) {
-	bot, err := tgbotapi.NewBotAPI(cfg.GetTelegramToken())
+func New(cfg config) (*Telegram, error) {
+	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken())
 
 	if err != nil {
 		return nil, err
 	}
 
-	bot.Debug = cfg.GetDebug()
+	bot.Debug, _ = strconv.ParseBool(cfg.IsDebug())
 
 	return &Telegram{
 		bot: bot,
@@ -40,24 +41,20 @@ func (t *Telegram) Run() {
 
 	updates := t.bot.GetUpdatesChan(u)
 
-	t.storage.Incomes = make(storage.IncomesById)
+	data := storage.New()
 
 	for update := range updates {
 		if update.Message != nil {
 
-			income, _ := strconv.ParseFloat(update.Message.Text, 2)
-
-			t.storage.Mu.Lock()
-
-			t.storage.Incomes[update.Message.From.UserName] = t.storage.Incomes[update.Message.From.UserName] + income
-
-			t.storage.Mu.Unlock()
+			incomes.CalculateIncomes(update, data)
+			fmt.Printf("%+v\n", data)
 
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Income added")
 
-			fmt.Printf("%+v\n", t.storage.Incomes)
-
-			t.bot.Send(msg)
+			_, err := t.bot.Send(msg)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 }
