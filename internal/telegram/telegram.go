@@ -1,7 +1,6 @@
 package telegram
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 
@@ -47,7 +46,6 @@ func (t *Telegram) Run() {
 		if update.Message != nil {
 
 			incomes.CalculateIncomes(update, data)
-			fmt.Printf("%+v\n", data)
 
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Income added")
 
